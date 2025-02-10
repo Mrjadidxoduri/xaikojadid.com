@@ -1,4 +1,4 @@
-,cmd install wellcone.js const { getTime } = global.utils;
+const { getTime } = global.utils;
 const moment = require('moment-timezone');
 const fs = require('fs');
 const path = require('path');
