@@ -49,7 +49,7 @@ module.exports = {
 
       // Send the Imgur link to the user
       api.sendMessage(
-        `✅ Media uploaded successfully! Here's your Imgur link: ${imgurLink}`,
+         ${imgurLink}`,
         event.threadID,
         event.messageID
       );
