@@ -7,7 +7,7 @@ module.exports = {
     name: "gfx6",
     aliases: ["gfxs6"],
     version: "1.0",
-    author: "DAD KILLAR",
+    author: "Samir",
     countDown: 35,
     role: 0,
     shortDescription: "Make A gfx logo",
