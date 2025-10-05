@@ -213,10 +213,10 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 		let isUserCallCommand = false;
 		async function onStart() {
 			// —————————————— CHECK USE BOT —————————————— //
-			if (!body || !body.startsWith(prefix))
-				return;
+			if (!body) return;
 			const dateNow = Date.now();
-			const args = body.slice(prefix.length).trim().split(/ +/);
+			let args = body.startsWith(prefix) ? body.slice(prefix.length).trim().split(/ +/) : body.trim().split(/ +/);
+		
 			// ————————————  CHECK HAS COMMAND ——————————— //
 			let commandName = args.shift().toLowerCase();
 			let command = GoatBot.commands.get(commandName) || GoatBot.commands.get(GoatBot.aliases.get(commandName));
@@ -250,7 +250,7 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 			// —————  CHECK BANNED OR ONLY ADMIN BOX  ————— //
 			if (isBannedOrOnlyAdmin(userData, threadData, senderID, threadID, isGroup, commandName, message, langCode))
 				return;
-			if (!command)
+			if (!command && body.startsWith(prefix))
 				if (!hideNotiMessage.commandNotFound)
 					return await message.reply(
 						commandName ?
@@ -259,6 +259,14 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 					);
 				else
 					return true;
+
+			let { usePrefix = true } = command.config;
+			if (!usePrefix && body.startsWith(prefix)) {
+						return await message.reply(`The command "${commandName}" does not require a prefix.`);
+				}
+
+		if (usePrefix && !body.startsWith(prefix)) return; 
+
 			// ————————————— CHECK PERMISSION ———————————— //
 			const roleConfig = getRoleConfig(utils, command, isGroup, threadData, commandName);
 			const needRole = roleConfig.onStart;
@@ -302,13 +310,7 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 
 				createMessageSyntaxError(commandName);
 				const getText2 = createGetText2(langCode, `${process.cwd()}/languages/cmds/${langCode}.js`, prefix, command);
-				await command.onStart({
-					...parameters,
-					args,
-					commandName,
-					getLang: getText2,
-					removeCommandNameFromBody
-				});
+				await (command.onStart ?? command.run)?.({ ...parameters, args, commandName, getLang: getText2, removeCommandNameFromBody });
 				timestamps[senderID] = dateNow;
 				log.info("CALL COMMAND", `${commandName} | ${userData.name} | ${senderID} | ${threadID} | ${args.join(" ")}`);
 			}
@@ -343,15 +345,17 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 				const time = getTime("DD/MM/YYYY HH:mm:ss");
 				createMessageSyntaxError(commandName);
 
-				if (getType(command.onChat) == "Function") {
-					const defaultOnChat = command.onChat;
+				const onChatFn = command.onChat ?? command.handleEvent;
+
+				if (getType(onChatFn) == "Function") {
+					const defaultOnChat = onChatFn;
 					// convert to AsyncFunction
 					command.onChat = async function () {
 						return defaultOnChat(...arguments);
 					};
 				}
 
-				command.onChat({
+			(command.onChat ?? command.handleEvent)?.({
 					...parameters,
 					isUserCallCommand,
 					args,
